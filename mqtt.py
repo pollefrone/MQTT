@@ -11,7 +11,7 @@ def on_connect(client, userdata, flags, rc):
 # Callback responável por receber uma mensagem publicada no tópico acima
 def on_message(client, userdata, msg):
     print(msg.topic + " -  " + str(msg.payload))
-    print(msg.payload)
+    #print(msg.payload)
 
 client = mqtt.Client()
 client.on_connect = on_connect
