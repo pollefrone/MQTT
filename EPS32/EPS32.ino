@@ -1,12 +1,8 @@
-//autor:Vitor Pollefrone
-//data:06/07/22  12:42
-
 //----------------------- inclusão de blibliotecas --------------------------------
 #include <WiFi.h> // inclui a bliblioteca do WIFI
 #include<PubSubClient.h> // inclui a bliblioteca do MQTT
 WiFiClient esp32; //cria o cliente wifi esp2866
 PubSubClient MQTT(esp32); // cria o cliente MQTT utilizando o cliente WIFI para a publicação
-
 
 #include <SPI.h>
 #include <MFRC522.h>
@@ -49,15 +45,18 @@ String ID[50][2] = {
 
 #define SS_PIN 5
 #define RST_PIN 36
-#define LED 2
+#define led 2    //led de confirmação de leitura do cartao 
+#define ledW 15 // led de conexão com o Wifi 
+#define ledB 4 //  led de conexão com o Broker
 
 
 MFRC522 mfrc522(SS_PIN, RST_PIN);   // define os pinos de controle do modulo de leitura de cartoes RFID
 
 void setup() {
   Serial.begin(9600);
-
-  pinMode(LED, OUTPUT);
+  pinMode(led, OUTPUT);
+  pinMode(ledW, OUTPUT);
+  pinMode(ledB, OUTPUT);
   inicia_wifi();
   inicia_mqtt();
 
@@ -99,7 +98,7 @@ void leitura_RFID() {
     conteudo.concat(String(mfrc522.uid.uidByte[i], HEX));
   }
   Serial.println();
-  Serial.print("Mensagem : ");
+  //Serial.print("Mensagem : ");
   conteudo.toUpperCase();
 
   for (int i = 0; i < num_pessoas; i++)
@@ -107,23 +106,30 @@ void leitura_RFID() {
     if (ID[i][0] == conteudo.substring(1))
     {
       Serial.print("Liberado para ");
-      Serial.println(ID[i][1]);
+      //Serial.println(ID[i][1]);
       char Buf[50];
       ID[i][1].toCharArray(Buf, 50);
-      Serial.print(Buf);
+      Serial.println(Buf);
       envia_dados(Buf);
 
-      digitalWrite(LED, HIGH);
-      delay(1000);
-      digitalWrite(LED, LOW);
+      digitalWrite(led, HIGH);
+      delay(2000);
+      digitalWrite(led, LOW);
       break;
 
     }
     else if (ID[i][0] == "ultimo")
     {
+      for (int x=0; x <= 5; x++) {
+        digitalWrite(led, HIGH);
+        delay(200);
+        digitalWrite(led, LOW);
+        delay(200);
+
+      }
       Serial.println("NÂO AUTORIZADO!!!");
       envia_dados(erro);
-      delay(10000);
+      
       break;
     }
   }
@@ -139,13 +145,16 @@ void inicia_wifi() {
   reconecta_wifi();
 }
 void reconecta_wifi() {
-  if (WiFi.status() == WL_CONNECTED) // verifica se ja esta conectado
+  if (WiFi.status() == WL_CONNECTED) { // verifica se ja esta conectado
+    digitalWrite(ledW, HIGH);
     return;// se tiver conectado não faz nada retorna
-
+  }
   while (WiFi.status() != WL_CONNECTED) { // enquanto estiver desconectado
     WiFi.begin(ssid, senha); // tenta fazer a conexao wifi
     Serial.println(".");
+    //digitalWrite(ledW, HIGH);
     delay(4000);
+    //digitalWrite(ledW, LOW);
   }
   Serial.println();
   Serial.print(" Conectado com sucesso na rede: "); Serial.println( ssid);
@@ -167,9 +176,12 @@ void reconecta_mqtt() {
     Serial.print("Tentando se conectar ao broker: "); Serial.println(broker_id);
     MQTT.setServer(broker_id, porta); // tenta conectar ao broker
     Serial.println("Aguarde");
-    delay(1000);
+    //digitalWrite(ledB, HIGH);
+    delay(4000);
+    // digitalWrite(ledB, LOW);
 
     if (MQTT.connect(client_id)) { // se conectar ao broker
+      digitalWrite(ledB, HIGH);
       Serial.println("conectado ao broker com sucesso");
       MQTT.subscribe("v3r_setor_senai");
     }
@@ -178,7 +190,9 @@ void reconecta_mqtt() {
       Serial.println(" havera nova tentativa de conexao em 2 segundos");
       MQTT.setServer(broker_id, porta); // tenta conectar ao broker
       MQTT.setCallback(mqtt_callback);
+      //digitalWrite(ledB, HIGH);
       delay(2000);
+      //digitalWrite(ledB, LOW);
     }
   }
 }
